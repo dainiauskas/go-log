@@ -36,37 +36,37 @@ import (
 
 // consts
 const (
-	kMaxInt64          = int64(^uint64(0) >> 1)
-	kLogCreatedTimeLen = 24
-	kLogFilenameMinLen = 29
+	maxInt64          = int64(^uint64(0) >> 1)
+	logCreatedTimeLen = 24
+	logFilenameMinLen = 29
 )
 
 // log level
 const (
-	kLogLevelTrace = iota
-	kLogLevelInfo
-	kLogLevelUpdate
-	kLogLevelWarn
-	kLogLevelError
-	kLogLevelPanic
-	kLogLevelAbort
+	logLevelTrace = iota
+	logLevelInfo
+	logLevelUpdate
+	logLevelWarn
+	logLevelError
+	logLevelPanic
+	logLevelAbort
 
-	kLogLevelMax
+	logLevelMax
 )
 
 // log flags
 const (
-	kFlagLogTrace = 1 << iota
-	kFlagLogThrough
-	kFlagLogFuncName
-	kFlagLogFilenameLineNum
-	kFlagLogToConsole
+	flagLogTrace = 1 << iota
+	flagLogThrough
+	flagLogFuncName
+	flagLogFilenameLineNum
+	flagLogToConsole
 )
 
 // log info
 var (
-	kInfoUserName string
-	kInfoHostName string
+	infoUserName string
+	infoHostName string
 )
 
 // const strings
@@ -76,7 +76,7 @@ const (
 	// Default filename prefix for symlinks to logfiles
 	DefSymlinkPrefix = "%P.%U"
 
-	kLogLevelChar = "TIWEPA"
+	logLevelChar = "TIWEPA"
 )
 
 // Init must be called first, otherwise this logger will not function properly!
@@ -101,10 +101,10 @@ func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bo
 			nfilesToDel, maxfiles)
 	}
 
-	kInfoHostName, _ = os.Hostname()
+	infoHostName, _ = os.Hostname()
 
 	gConf.logPath = logpath + "/"
-	gConf.setFlags(kFlagLogTrace, logTrace)
+	gConf.setFlags(flagLogTrace, logTrace)
 	gConf.maxfiles = maxfiles
 	gConf.nfilesToDel = nfilesToDel
 	gConf.setMaxSize(maxsize)
@@ -112,40 +112,40 @@ func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bo
 }
 
 func SetLogTrace(on bool) {
-	gConf.setFlags(kFlagLogTrace, on)
+	gConf.setFlags(flagLogTrace, on)
 }
 
 // SetLogThrough sets whether to write log to all the logfiles with less severe log level.
 // By default, logthrough is turn on. You can turn it off for better performance.
 func SetLogThrough(on bool) {
-	gConf.setFlags(kFlagLogThrough, on)
+	gConf.setFlags(flagLogThrough, on)
 }
 
 // SetLogFunctionName sets whether to log down the function name where the log takes place.
 // By default, function name is not logged down for better performance.
 func SetLogFunctionName(on bool) {
-	gConf.setFlags(kFlagLogFuncName, on)
+	gConf.setFlags(flagLogFuncName, on)
 }
 
 // SetLogFilenameLineNum sets whether to log down the filename and line number where the log takes place.
 // By default, filename and line number are logged down. You can turn it off for better performance.
 func SetLogFilenameLineNum(on bool) {
-	gConf.setFlags(kFlagLogFilenameLineNum, on)
+	gConf.setFlags(flagLogFilenameLineNum, on)
 }
 
 // SetLogToConsole sets whether to output logs to the console.
 // By default, logs are not output to the console.
 func SetLogToConsole(on bool) {
-	gConf.setFlags(kFlagLogToConsole, on)
+	gConf.setFlags(flagLogToConsole, on)
 }
 
-// SetUserName sets user name to write to log.
+// SetLogUserName sets user name to write to log.
 // By default, empty
 func SetLogUserName(name string) {
-	kInfoUserName = name
+	infoUserName = name
 }
 
-// Disable logging
+// SetLogDisable logging
 // By default, logs are enabled
 func SetLogDisable() {
 	gConf.enabled = false
@@ -177,7 +177,7 @@ func SetFilenamePrefix(logfilenamePrefix, symlinkPrefix string) error {
 // If parameter logTrace of logger.Init() is set to be false, no trace logs will be logged down.
 func Trace(format string, args ...interface{}) {
 	if gConf.logTrace() {
-		log(kLogLevelTrace, format, args)
+		log(logLevelTrace, format, args)
 	}
 }
 
@@ -188,33 +188,33 @@ func Console(format string, args ...interface{}) {
 
 // Info logs down a log with info level.
 func Info(format string, args ...interface{}) {
-	log(kLogLevelInfo, format, args)
+	log(logLevelInfo, format, args)
 }
 
 // Info logs down a log with info level.
 func Update(format string, args ...interface{}) {
-	log(kLogLevelUpdate, format, args)
+	log(logLevelUpdate, format, args)
 }
 
 // Warn logs down a log with warning level.
 func Warn(format string, args ...interface{}) {
-	log(kLogLevelWarn, format, args)
+	log(logLevelWarn, format, args)
 }
 
 // Error logs down a log with error level.
 func Error(format string, args ...interface{}) {
-	log(kLogLevelError, format, args)
+	log(logLevelError, format, args)
 }
 
 // Panic logs down a log with panic level and then panic("panic log") is called.
 func Panic(format string, args ...interface{}) {
-	log(kLogLevelPanic, format, args)
+	log(logLevelPanic, format, args)
 	panic("panic log")
 }
 
 // Abort logs down a log with abort level and then os.Exit(-1) is called.
 func Abort(format string, args ...interface{}) {
-	log(kLogLevelAbort, format, args)
+	log(logLevelAbort, format, args)
 	os.Exit(-1)
 }
 
@@ -240,23 +240,23 @@ func (conf *config) setFlags(flag uint32, on bool) {
 }
 
 func (conf *config) logTrace() bool {
-	return (conf.logflags & kFlagLogTrace) != 0
+	return (conf.logflags & flagLogTrace) != 0
 }
 
 func (conf *config) logThrough() bool {
-	return (conf.logflags & kFlagLogThrough) != 0
+	return (conf.logflags & flagLogThrough) != 0
 }
 
 func (conf *config) logFuncName() bool {
-	return (conf.logflags & kFlagLogFuncName) != 0
+	return (conf.logflags & flagLogFuncName) != 0
 }
 
 func (conf *config) logFilenameLineNum() bool {
-	return (conf.logflags & kFlagLogFilenameLineNum) != 0
+	return (conf.logflags & flagLogFilenameLineNum) != 0
 }
 
 func (conf *config) logToConsole() bool {
-	return (conf.logflags & kFlagLogToConsole) != 0
+	return (conf.logflags & flagLogToConsole) != 0
 }
 
 func (conf *config) isEnabled() bool {
@@ -267,7 +267,7 @@ func (conf *config) setMaxSize(maxsize uint32) {
 	if maxsize > 0 {
 		conf.maxsize = int64(maxsize) * 1024 * 1024
 	} else {
-		conf.maxsize = kMaxInt64 - (1024 * 1024 * 1024 * 1024 * 1024)
+		conf.maxsize = maxInt64 - (1024 * 1024 * 1024 * 1024 * 1024)
 	}
 }
 
@@ -300,7 +300,7 @@ func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
 	}
 
 	isSymlink = map[string]bool{}
-	for i := 0; i != kLogLevelMax; i++ {
+	for i := 0; i != logLevelMax; i++ {
 		gLoggers[i].level = i
 		gSymlinks[i] = symlinkPrefix + gLogLevelNames[i]
 		isSymlink[gSymlinks[i]] = true
@@ -322,14 +322,14 @@ func (l Gorm) Print(args ...interface{}) {
 			args[5],
 		}
 
-		log(kLogLevelTrace, "Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
+		log(logLevelTrace, "Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
 	case "log":
 		messages = []interface{}{
 			args[1],
 			args[2],
 		}
 
-		log(kLogLevelError, "Source=[%v], Error=%v", messages)
+		log(logLevelError, "Source=[%v], Error=%v", messages)
 	}
 }
 
@@ -441,12 +441,12 @@ func (a byCreatedTime) Len() int {
 
 func (a byCreatedTime) Less(i, j int) bool {
 	s1, s2 := a[i], a[j]
-	if len(s1) < kLogFilenameMinLen {
+	if len(s1) < logFilenameMinLen {
 		return true
-	} else if len(s2) < kLogFilenameMinLen {
+	} else if len(s2) < logFilenameMinLen {
 		return false
 	} else {
-		return s1[len(s1)-kLogCreatedTimeLen:] < s2[len(s2)-kLogCreatedTimeLen:]
+		return s1[len(s1)-logCreatedTimeLen:] < s2[len(s2)-logCreatedTimeLen:]
 	}
 }
 
@@ -492,7 +492,7 @@ func genLogPrefix(buf *buffer, logLevel, skip int, t time.Time) {
 	h, m, s := t.Clock()
 
 	// time
-	buf.tmp[0] = kLogLevelChar[logLevel]
+	buf.tmp[0] = logLevelChar[logLevel]
 	buf.twoDigits(1, h)
 	buf.tmp[3] = ':'
 	buf.twoDigits(4, m)
@@ -523,13 +523,13 @@ func genLogPrefix(buf *buffer, logLevel, skip int, t time.Time) {
 			buf.WriteString(runtime.FuncForPC(pc).Name())
 		}
 	}
-	if kInfoHostName != "" {
+	if infoHostName != "" {
 		buf.WriteByte(' ')
-		buf.WriteString(kInfoHostName)
+		buf.WriteString(infoHostName)
 	}
-	if kInfoUserName != "" {
+	if infoUserName != "" {
 		buf.WriteByte(' ')
-		buf.WriteString(kInfoUserName)
+		buf.WriteString(infoUserName)
 	}
 
 	buf.WriteString("] ")
@@ -548,11 +548,11 @@ func log(logLevel int, format string, args []interface{}) {
 	buf.WriteByte('\n')
 	output := buf.Bytes()
 	if gConf.logThrough() {
-		for i := logLevel; i != kLogLevelTrace; i-- {
+		for i := logLevel; i != logLevelTrace; i-- {
 			gLoggers[i].log(t, output)
 		}
 		if gConf.logTrace() {
-			gLoggers[kLogLevelTrace].log(t, output)
+			gLoggers[logLevelTrace].log(t, output)
 		}
 	} else {
 		gLoggers[logLevel].log(t, output)
@@ -566,21 +566,21 @@ func log(logLevel int, format string, args []interface{}) {
 
 var gProgname = path.Base(os.Args[0])
 
-var gLogLevelNames = [kLogLevelMax]string{
+var gLogLevelNames = [logLevelMax]string{
 	"trace", "info", "update", "warn", "error", "panic", "abort",
 }
 
 var gConf = config{
 	logPath:     "./log/",
-	logflags:    kFlagLogFilenameLineNum | kFlagLogThrough,
+	logflags:    flagLogFilenameLineNum | flagLogThrough,
 	maxfiles:    400,
 	nfilesToDel: 10,
 	maxsize:     100 * 1024 * 1024,
 	enabled:     true,
 }
 
-var gSymlinks [kLogLevelMax]string
+var gSymlinks [logLevelMax]string
 var isSymlink map[string]bool
-var gFullSymlinks [kLogLevelMax]string
+var gFullSymlinks [logLevelMax]string
 var gBufPool bufferPool
-var gLoggers [kLogLevelMax]logger
+var gLoggers [logLevelMax]logger
