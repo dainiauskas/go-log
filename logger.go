@@ -65,7 +65,7 @@ const (
 
 // log info
 var (
-  kInfoUserName string
+	kInfoUserName string
 	kInfoHostName string
 )
 
@@ -183,7 +183,7 @@ func Trace(format string, args ...interface{}) {
 
 // Console output only to console
 func Console(format string, args ...interface{}) {
-	fmt.Printf(format + "\n", args...)
+	fmt.Printf(format+"\n", args...)
 }
 
 // Info logs down a log with info level.
@@ -308,7 +308,7 @@ func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
 	}
 }
 
-type Gorm struct {}
+type Gorm struct{}
 
 func (l Gorm) Print(args ...interface{}) {
 	var messages []interface{}
@@ -576,7 +576,7 @@ var gConf = config{
 	maxfiles:    400,
 	nfilesToDel: 10,
 	maxsize:     100 * 1024 * 1024,
-	enabled:		 true,
+	enabled:     true,
 }
 
 var gSymlinks [kLogLevelMax]string
