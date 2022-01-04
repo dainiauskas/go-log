@@ -45,9 +45,9 @@ const (
 const (
 	logLevelTrace = iota
 	logLevelInfo
-	logLevelUpdate
 	logLevelWarn
 	logLevelError
+	logLevelUpdate
 	logLevelPanic
 	logLevelAbort
 
@@ -108,9 +108,11 @@ func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bo
 	gConf.maxfiles = maxfiles
 	gConf.nfilesToDel = nfilesToDel
 	gConf.setMaxSize(maxsize)
+
 	return SetFilenamePrefix(DefFilenamePrefix, DefSymlinkPrefix)
 }
 
+// SetLogTrace sets to write trace log file
 func SetLogTrace(on bool) {
 	gConf.setFlags(flagLogTrace, on)
 }
@@ -149,6 +151,11 @@ func SetLogUserName(name string) {
 // By default, logs are enabled
 func SetLogDisable() {
 	gConf.enabled = false
+}
+
+// SetLogEnable set logging enabled
+func SetLogEnable() {
+	gConf.enabled = true
 }
 
 // SetFilenamePrefix sets filename prefix for the logfiles and symlinks of the logfiles.
@@ -191,7 +198,7 @@ func Info(format string, args ...interface{}) {
 	log(logLevelInfo, format, args)
 }
 
-// Info logs down a log with info level.
+// Update logs down a log with update level.
 func Update(format string, args ...interface{}) {
 	log(logLevelUpdate, format, args)
 }
@@ -209,13 +216,13 @@ func Error(format string, args ...interface{}) {
 // Panic logs down a log with panic level and then panic("panic log") is called.
 func Panic(format string, args ...interface{}) {
 	log(logLevelPanic, format, args)
-	panic("panic log")
+	// panic("panic log")
 }
 
 // Abort logs down a log with abort level and then os.Exit(-1) is called.
 func Abort(format string, args ...interface{}) {
 	log(logLevelAbort, format, args)
-	os.Exit(-1)
+	// os.Exit(-1)
 }
 
 // logger configuration
@@ -272,11 +279,6 @@ func (conf *config) setMaxSize(maxsize uint32) {
 }
 
 func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
-	host, err := os.Hostname()
-	if err != nil {
-		host = "Unknown"
-	}
-
 	username := "Unknown"
 	curUser, err := user.Current()
 	if err == nil {
@@ -287,14 +289,14 @@ func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
 	conf.pathPrefix = conf.logPath
 	if len(filenamePrefix) > 0 {
 		filenamePrefix = strings.Replace(filenamePrefix, "%P", gProgname, -1)
-		filenamePrefix = strings.Replace(filenamePrefix, "%H", host, -1)
+		filenamePrefix = strings.Replace(filenamePrefix, "%H", infoHostName, -1)
 		filenamePrefix = strings.Replace(filenamePrefix, "%U", username, -1)
 		conf.pathPrefix = conf.pathPrefix + filenamePrefix + "."
 	}
 
 	if len(symlinkPrefix) > 0 {
 		symlinkPrefix = strings.Replace(symlinkPrefix, "%P", gProgname, -1)
-		symlinkPrefix = strings.Replace(symlinkPrefix, "%H", host, -1)
+		symlinkPrefix = strings.Replace(symlinkPrefix, "%H", infoHostName, -1)
 		symlinkPrefix = strings.Replace(symlinkPrefix, "%U", username, -1)
 		symlinkPrefix += "."
 	}
@@ -308,8 +310,10 @@ func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
 	}
 }
 
+// Gorm structure used for Gorm SQL query logging
 type Gorm struct{}
 
+// Print function used in Gorm to output
 func (l Gorm) Print(args ...interface{}) {
 	var messages []interface{}
 
@@ -567,7 +571,7 @@ func log(logLevel int, format string, args []interface{}) {
 var gProgname = path.Base(os.Args[0])
 
 var gLogLevelNames = [logLevelMax]string{
-	"trace", "info", "update", "warn", "error", "panic", "abort",
+	"trace", "info", "warn", "error", "update", "panic", "abort",
 }
 
 var gConf = config{
