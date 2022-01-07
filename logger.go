@@ -310,6 +310,16 @@ func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
 	}
 }
 
+type Logger struct{}
+
+func (l Logger) Println(v ...interface{}) {
+	Trace("", v...)
+}
+
+func (l Logger) Printf(format string, v ...interface{}) {
+	Trace(format, v...)
+}
+
 // Gorm structure used for Gorm SQL query logging
 type Gorm struct{}
 
