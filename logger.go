@@ -340,7 +340,7 @@ func (l Gorm) Print(args ...interface{}) {
 			args[5],
 		}
 
-		Query("Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
+		Query("Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages...)
 	case "log":
 		messages = []interface{}{
 			args[1],
