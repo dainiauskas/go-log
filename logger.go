@@ -77,7 +77,7 @@ const (
 	// Default filename prefix for symlinks to logfiles
 	DefSymlinkPrefix = "%P.%U"
 
-	logLevelChar = "TIWEPA"
+	logLevelChar = "TIWEUPAQ"
 )
 
 // Init must be called first, otherwise this logger will not function properly!
