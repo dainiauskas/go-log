@@ -347,7 +347,7 @@ func (l Gorm) Print(args ...interface{}) {
 			args[2],
 		}
 
-		log(logLevelError, "Source=[%v], Error=%v", messages)
+		Query("Source=[%v], Error=%v", messages...)
 	}
 }
 
