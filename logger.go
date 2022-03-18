@@ -217,13 +217,16 @@ func Error(format string, args ...interface{}) {
 // Panic logs down a log with panic level and then panic("panic log") is called.
 func Panic(format string, args ...interface{}) {
 	log(logLevelPanic, format, args)
-	// panic("panic log")
 }
 
 // Abort logs down a log with abort level and then os.Exit(-1) is called.
 func Abort(format string, args ...interface{}) {
 	log(logLevelAbort, format, args)
-	// os.Exit(-1)
+}
+
+// Query logs down a log with query level
+func Query(format string, args ...interface{}) {
+	log(logLevelQuery, format, args)
 }
 
 // logger configuration
@@ -337,7 +340,7 @@ func (l Gorm) Print(args ...interface{}) {
 			args[5],
 		}
 
-		log(logLevelQuery, "Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
+		Query("Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
 	case "log":
 		messages = []interface{}{
 			args[1],
