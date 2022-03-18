@@ -50,6 +50,7 @@ const (
 	logLevelUpdate
 	logLevelPanic
 	logLevelAbort
+	logLevelQuery
 
 	logLevelMax
 )
@@ -336,7 +337,7 @@ func (l Gorm) Print(args ...interface{}) {
 			args[5],
 		}
 
-		log(logLevelTrace, "Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
+		log(logLevelQuery, "Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages)
 	case "log":
 		messages = []interface{}{
 			args[1],
@@ -581,7 +582,7 @@ func log(logLevel int, format string, args []interface{}) {
 var gProgname = path.Base(os.Args[0])
 
 var gLogLevelNames = [logLevelMax]string{
-	"trace", "info", "warn", "error", "update", "panic", "abort",
+	"trace", "info", "warn", "error", "update", "panic", "abort", "query",
 }
 
 var gConf = config{
