@@ -51,6 +51,7 @@ const (
 	logLevelPanic
 	logLevelAbort
 	logLevelQuery
+	logLevelDebug
 
 	logLevelMax
 )
@@ -82,11 +83,12 @@ const (
 
 // Init must be called first, otherwise this logger will not function properly!
 // It returns nil if all goes well, otherwise it returns the corresponding error.
-//   maxfiles: Must be greater than 0 and less than or equal to 100000.
-//   nfilesToDel: Number of files deleted when number of log files reaches `maxfiles`.
-//                Must be greater than 0 and less than or equal to `maxfiles`.
-//   maxsize: Maximum size of a log file in MB, 0 means unlimited.
-//   logTrace: If set to false, `logger.Trace("xxxx")` will be mute.
+//
+//	maxfiles: Must be greater than 0 and less than or equal to 100000.
+//	nfilesToDel: Number of files deleted when number of log files reaches `maxfiles`.
+//	             Must be greater than 0 and less than or equal to `maxfiles`.
+//	maxsize: Maximum size of a log file in MB, 0 means unlimited.
+//	logTrace: If set to false, `logger.Trace("xxxx")` will be mute.
 func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bool) error {
 	err := os.MkdirAll(logpath, 0755)
 	if err != nil {
@@ -227,6 +229,11 @@ func Abort(format string, args ...interface{}) {
 // Query logs down a log with query level
 func Query(format string, args ...interface{}) {
 	log(logLevelQuery, format, args)
+}
+
+// Debug logs down a log with debug level
+func Debug(format string, args ...interface{}) {
+	log(logLevelDebug, format, args)
 }
 
 // logger configuration
@@ -585,7 +592,7 @@ func log(logLevel int, format string, args []interface{}) {
 var gProgname = path.Base(os.Args[0])
 
 var gLogLevelNames = [logLevelMax]string{
-	"trace", "info", "warn", "error", "update", "panic", "abort", "query",
+	"trace", "info", "warn", "error", "update", "panic", "abort", "query", "debug",
 }
 
 var gConf = config{
