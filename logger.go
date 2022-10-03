@@ -63,6 +63,7 @@ const (
 	flagLogFuncName
 	flagLogFilenameLineNum
 	flagLogToConsole
+	flagLogDebug
 )
 
 // log info
@@ -118,6 +119,11 @@ func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bo
 // SetLogTrace sets to write trace log file
 func SetLogTrace(on bool) {
 	gConf.setFlags(flagLogTrace, on)
+}
+
+// SetLogDebug sets to write trace log file
+func SetLogDebug(on bool) {
+	gConf.setFlags(flagLogDebug, on)
 }
 
 // SetLogThrough sets whether to write log to all the logfiles with less severe log level.
@@ -233,7 +239,9 @@ func Query(format string, args ...interface{}) {
 
 // Debug logs down a log with debug level
 func Debug(format string, args ...interface{}) {
-	log(logLevelDebug, format, args)
+	if gConf.logDebug() {
+		log(logLevelDebug, format, args)
+	}
 }
 
 // logger configuration
@@ -259,6 +267,10 @@ func (conf *config) setFlags(flag uint32, on bool) {
 
 func (conf *config) logTrace() bool {
 	return (conf.logflags & flagLogTrace) != 0
+}
+
+func (conf *config) logDebug() bool {
+	return (conf.logflags & flagLogDebug) != 0
 }
 
 func (conf *config) logThrough() bool {
