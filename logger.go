@@ -116,6 +116,20 @@ func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bo
 	return SetFilenamePrefix(DefFilenamePrefix, DefSymlinkPrefix)
 }
 
+// Config set
+func SetMaxSize(size uint32) {
+	gConf.setMaxSize(size)
+}
+
+// SetMaxFiles - change maxfiles parameter
+func SetMaxFiles(files int) {
+	gConf.maxfiles = files
+}
+
+func SetFilesDelete(files int) {
+	gConf.nfilesToDel = files
+}
+
 // SetLogTrace sets to write trace log file
 func SetLogTrace(on bool) {
 	gConf.setFlags(flagLogTrace, on)
@@ -512,7 +526,7 @@ func getLogfilenames(dir string) ([]string, error) {
 		if err == nil {
 			nfiles := len(filenames)
 			for i := 0; i < nfiles; {
-				if isSymlink[filenames[i]] == false {
+				if !isSymlink[filenames[i]] {
 					i++
 				} else {
 					nfiles--
