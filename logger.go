@@ -365,28 +365,6 @@ func (l *logger) errlog(t time.Time, originLog []byte, err error) {
 	gBufPool.putBuffer(buf)
 }
 
-// sort files by created time embedded in the filename
-type byCreatedTime []string
-
-func (a byCreatedTime) Len() int {
-	return len(a)
-}
-
-func (a byCreatedTime) Less(i, j int) bool {
-	s1, s2 := a[i], a[j]
-	if len(s1) < logFilenameMinLen {
-		return true
-	} else if len(s2) < logFilenameMinLen {
-		return false
-	} else {
-		return s1[len(s1)-logCreatedTimeLen:] < s2[len(s2)-logCreatedTimeLen:]
-	}
-}
-
-func (a byCreatedTime) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-
 // init is called after all the variable declarations in the package have evaluated their initializers,
 // and those are evaluated only after all the imported packages have been initialized.
 // Besides initializations that cannot be expressed as declarations, a common use of init functions is to verify
@@ -396,29 +374,6 @@ func init() {
 	gProgname = tmpProgname[len(tmpProgname)-1]
 
 	gConf.setFilenamePrefix(DefFilenamePrefix, DefSymlinkPrefix)
-}
-
-// helpers
-func getLogfilenames(dir string) ([]string, error) {
-	var filenames []string
-	f, err := os.Open(dir)
-	if err == nil {
-		filenames, err = f.Readdirnames(0)
-		f.Close()
-		if err == nil {
-			nfiles := len(filenames)
-			for i := 0; i < nfiles; {
-				if !isSymlink[filenames[i]] {
-					i++
-				} else {
-					nfiles--
-					filenames[i] = filenames[nfiles]
-					filenames = filenames[:nfiles]
-				}
-			}
-		}
-	}
-	return filenames, err
 }
 
 func genLogPrefix(buf *buffer, logLevel, skip int, t time.Time) {
