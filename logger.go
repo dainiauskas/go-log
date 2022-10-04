@@ -33,13 +33,6 @@ import (
 	"time"
 )
 
-// consts
-const (
-	maxInt64          = int64(^uint64(0) >> 1)
-	logCreatedTimeLen = 24
-	logFilenameMinLen = 29
-)
-
 // log level
 const (
 	logLevelTrace = iota
