@@ -264,7 +264,7 @@ type logger struct {
 	level  int
 	day    int
 	size   int64
-	purged *time.Time
+	purged time.Time
 	lock   sync.Mutex
 }
 
@@ -275,7 +275,7 @@ func (l *logger) log(t time.Time, data []byte) {
 	defer l.lock.Unlock()
 
 	// Purge once in 24 hours
-	if l.purged == nil || -time.Until(*l.purged) > (24*time.Hour) {
+	if -time.Until(l.purged) > (24 * time.Hour) {
 		gConf.purgeLock.Lock()
 		hasLocked := true
 
@@ -307,6 +307,8 @@ func (l *logger) log(t time.Time, data []byte) {
 
 			return e
 		})
+
+		l.purged = time.Now()
 
 		filename := fmt.Sprintf("%s%s_%d%02d%02d.log", gConf.pathPrefix, gLogLevelNames[l.level], y, m, d)
 		newfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
