@@ -25,10 +25,9 @@ package log
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"path"
+	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -85,49 +84,26 @@ const (
 // Init must be called first, otherwise this logger will not function properly!
 // It returns nil if all goes well, otherwise it returns the corresponding error.
 //
-//	maxfiles: Must be greater than 0 and less than or equal to 100000.
-//	nfilesToDel: Number of files deleted when number of log files reaches `maxfiles`.
-//	             Must be greater than 0 and less than or equal to `maxfiles`.
-//	maxsize: Maximum size of a log file in MB, 0 means unlimited.
+//	maxdays: Maximum days to keep logs.
 //	logTrace: If set to false, `logger.Trace("xxxx")` will be mute.
-func Init(logpath string, maxfiles, nfilesToDel int, maxsize uint32, logTrace bool) error {
+func Init(logpath string, maxdays int, logTrace bool) error {
 	err := os.MkdirAll(logpath, 0755)
 	if err != nil {
 		return err
 	}
 
-	if maxfiles <= 0 || maxfiles > 100000 {
-		return fmt.Errorf("maxfiles must be greater than 0 and less than or equal to 100000: %d", maxfiles)
+	infoHostName, err = os.Hostname()
+	if err != nil {
+		return err
 	}
-
-	if nfilesToDel <= 0 || nfilesToDel > maxfiles {
-		return fmt.Errorf("nfilesToDel must be greater than 0 and less than or equal to maxfiles! toDel=%d maxfiles=%d",
-			nfilesToDel, maxfiles)
-	}
-
-	infoHostName, _ = os.Hostname()
 
 	gConf.logPath = logpath + "/"
+	gConf.maxdays = maxdays
 	gConf.setFlags(flagLogTrace, logTrace)
-	gConf.maxfiles = maxfiles
-	gConf.nfilesToDel = nfilesToDel
-	gConf.setMaxSize(maxsize)
 
-	return SetFilenamePrefix(DefFilenamePrefix, DefSymlinkPrefix)
-}
+	SetFilenamePrefix(DefFilenamePrefix, DefSymlinkPrefix)
 
-// Config set
-func SetMaxSize(size uint32) {
-	gConf.setMaxSize(size)
-}
-
-// SetMaxFiles - change maxfiles parameter
-func SetMaxFiles(files int) {
-	gConf.maxfiles = files
-}
-
-func SetFilesDelete(files int) {
-	gConf.nfilesToDel = files
+	return nil
 }
 
 // SetLogTrace sets to write trace log file
@@ -193,14 +169,8 @@ func SetLogEnable() {
 //
 // The default prefix for a log filename is logger.DefFilenamePrefix ("%P.%H.%U").
 // The default prefix for a symlink is logger.DefSymlinkPrefix ("%P.%U").
-func SetFilenamePrefix(logfilenamePrefix, symlinkPrefix string) error {
+func SetFilenamePrefix(logfilenamePrefix, symlinkPrefix string) {
 	gConf.setFilenamePrefix(logfilenamePrefix, symlinkPrefix)
-
-	files, err := getLogfilenames(gConf.logPath)
-	if err == nil {
-		gConf.curfiles = len(files)
-	}
-	return err
 }
 
 // Trace logs down a log with trace level.
@@ -258,95 +228,6 @@ func Debug(format string, args ...interface{}) {
 	}
 }
 
-// logger configuration
-type config struct {
-	logPath     string
-	pathPrefix  string
-	logflags    uint32
-	maxfiles    int   // limit the number of log files under `logPath`
-	curfiles    int   // number of files under `logPath` currently
-	nfilesToDel int   // number of files deleted when reaching the limit of the number of log files
-	maxsize     int64 // limit size of a log file
-	purgeLock   sync.Mutex
-	enabled     bool
-}
-
-func (conf *config) setFlags(flag uint32, on bool) {
-	if on {
-		conf.logflags = conf.logflags | flag
-	} else {
-		conf.logflags = conf.logflags & ^flag
-	}
-}
-
-func (conf *config) logTrace() bool {
-	return (conf.logflags & flagLogTrace) != 0
-}
-
-func (conf *config) logDebug() bool {
-	return (conf.logflags & flagLogDebug) != 0
-}
-
-func (conf *config) logThrough() bool {
-	return (conf.logflags & flagLogThrough) != 0
-}
-
-func (conf *config) logFuncName() bool {
-	return (conf.logflags & flagLogFuncName) != 0
-}
-
-func (conf *config) logFilenameLineNum() bool {
-	return (conf.logflags & flagLogFilenameLineNum) != 0
-}
-
-func (conf *config) logToConsole() bool {
-	return (conf.logflags & flagLogToConsole) != 0
-}
-
-func (conf *config) isEnabled() bool {
-	return conf.enabled
-}
-
-func (conf *config) setMaxSize(maxsize uint32) {
-	if maxsize > 0 {
-		conf.maxsize = int64(maxsize) * 1024 * 1024
-	} else {
-		conf.maxsize = maxInt64 - (1024 * 1024 * 1024 * 1024 * 1024)
-	}
-}
-
-func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
-	username := "Unknown"
-	curUser, err := user.Current()
-	if err == nil {
-		tmpUsername := strings.Split(curUser.Username, "\\") // for compatible with Windows
-		username = tmpUsername[len(tmpUsername)-1]
-	}
-
-	conf.pathPrefix = conf.logPath
-	if len(filenamePrefix) > 0 {
-		filenamePrefix = strings.Replace(filenamePrefix, "%P", gProgname, -1)
-		filenamePrefix = strings.Replace(filenamePrefix, "%H", infoHostName, -1)
-		filenamePrefix = strings.Replace(filenamePrefix, "%U", username, -1)
-		conf.pathPrefix = conf.pathPrefix + filenamePrefix + "."
-	}
-
-	if len(symlinkPrefix) > 0 {
-		symlinkPrefix = strings.Replace(symlinkPrefix, "%P", gProgname, -1)
-		symlinkPrefix = strings.Replace(symlinkPrefix, "%H", infoHostName, -1)
-		symlinkPrefix = strings.Replace(symlinkPrefix, "%U", username, -1)
-		symlinkPrefix += "."
-	}
-
-	isSymlink = map[string]bool{}
-	for i := 0; i != logLevelMax; i++ {
-		gLoggers[i].level = i
-		gSymlinks[i] = symlinkPrefix + gLogLevelNames[i]
-		isSymlink[gSymlinks[i]] = true
-		gFullSymlinks[i] = conf.logPath + gSymlinks[i]
-	}
-}
-
 type Logger struct{}
 
 func (l Logger) Println(v ...interface{}) {
@@ -386,11 +267,12 @@ func (l Gorm) Print(args ...interface{}) {
 
 // logger
 type logger struct {
-	file  *os.File
-	level int
-	day   int
-	size  int64
-	lock  sync.Mutex
+	file   *os.File
+	level  int
+	day    int
+	size   int64
+	purged *time.Time
+	lock   sync.Mutex
 }
 
 func (l *logger) log(t time.Time, data []byte) {
@@ -398,39 +280,40 @@ func (l *logger) log(t time.Time, data []byte) {
 
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	if l.size >= gConf.maxsize || l.day != d || l.file == nil {
+
+	// Purge once in 24 hours
+	if l.purged == nil || -time.Until(*l.purged) > (24*time.Hour) {
 		gConf.purgeLock.Lock()
 		hasLocked := true
+
 		defer func() {
 			if hasLocked {
 				gConf.purgeLock.Unlock()
 			}
 		}()
-		// reaches limit of number of log files
-		if gConf.curfiles >= gConf.maxfiles {
-			files, err := getLogfilenames(gConf.logPath)
-			if err != nil {
-				l.errlog(t, data, err)
-				return
+
+		filepath.Walk(gConf.logPath, func(path string, info os.FileInfo, e error) error {
+			if e != nil {
+				return e
 			}
 
-			gConf.curfiles = len(files)
-			if gConf.curfiles >= gConf.maxfiles {
-				sort.Sort(byCreatedTime(files))
-				nfiles := gConf.curfiles - gConf.maxfiles + gConf.nfilesToDel
-				if nfiles > gConf.curfiles {
-					nfiles = gConf.curfiles
-				}
-				for i := 0; i < nfiles; i++ {
-					err := os.RemoveAll(gConf.logPath + files[i])
-					if err == nil {
-						gConf.curfiles--
-					} else {
-						l.errlog(t, nil, err)
-					}
+			if !info.Mode().IsRegular() {
+				return nil
+			}
+
+			if filepath.Ext(info.Name()) != ".log" {
+				return nil
+			}
+
+			if -time.Until(info.ModTime()) > (time.Hour * 24 * 7) {
+				e = os.Remove(path)
+				if e != nil {
+					l.errlog(t, nil, e)
 				}
 			}
-		}
+
+			return e
+		})
 
 		filename := fmt.Sprintf("%s%s_%d%02d%02d.log", gConf.pathPrefix, gLogLevelNames[l.level], y, m, d)
 		newfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -438,7 +321,6 @@ func (l *logger) log(t time.Time, data []byte) {
 			l.errlog(t, data, err)
 			return
 		}
-		gConf.curfiles++
 		gConf.purgeLock.Unlock()
 		hasLocked = false
 
@@ -619,15 +501,6 @@ var gProgname = path.Base(os.Args[0])
 
 var gLogLevelNames = [logLevelMax]string{
 	"trace", "info", "warn", "error", "update", "panic", "abort", "query", "debug",
-}
-
-var gConf = config{
-	logPath:     "./log/",
-	logflags:    flagLogFilenameLineNum | flagLogThrough,
-	maxfiles:    400,
-	nfilesToDel: 10,
-	maxsize:     100 * 1024 * 1024,
-	enabled:     true,
 }
 
 var gSymlinks [logLevelMax]string
