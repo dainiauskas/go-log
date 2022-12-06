@@ -309,29 +309,29 @@ func (l *logger) log(t time.Time, data []byte) {
 		})
 
 		l.purged = time.Now()
-
-		filename := fmt.Sprintf("%s%s_%d%02d%02d.log", gConf.pathPrefix, gLogLevelNames[l.level], y, m, d)
-		newfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			l.errlog(t, data, err)
-			return
-		}
 		gConf.purgeLock.Unlock()
 		hasLocked = false
+	}
 
-		l.file.Close()
-		l.file = newfile
-		l.day = d
-		l.size = 0
+	filename := fmt.Sprintf("%s%s_%d%02d%02d.log", gConf.pathPrefix, gLogLevelNames[l.level], y, m, d)
+	newfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		l.errlog(t, data, err)
+		return
+	}
 
-		err = os.RemoveAll(gFullSymlinks[l.level])
-		if err != nil {
-			l.errlog(t, nil, err)
-		}
-		err = os.Symlink(path.Base(filename), gFullSymlinks[l.level])
-		if err != nil {
-			l.errlog(t, nil, err)
-		}
+	l.file.Close()
+	l.file = newfile
+	l.day = d
+	l.size = 0
+
+	err = os.RemoveAll(gFullSymlinks[l.level])
+	if err != nil {
+		l.errlog(t, nil, err)
+	}
+	err = os.Symlink(path.Base(filename), gFullSymlinks[l.level])
+	if err != nil {
+		l.errlog(t, nil, err)
 	}
 
 	n, _ := l.file.Write(data)
@@ -420,6 +420,7 @@ func genLogPrefix(buf *buffer, logLevel, skip int, t time.Time) {
 
 func log(logLevel int, format string, args []interface{}) {
 	if !gConf.isEnabled() {
+		fmt.Println("Logger disabled")
 		return
 	}
 
