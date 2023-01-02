@@ -275,6 +275,7 @@ func (l *logger) log(t time.Time, data []byte) {
 	defer l.lock.Unlock()
 
 	// Purge once in 24 hours
+	fmt.Println("Purged", l.purged, 24*time.Hour, -time.Until(l.purged) > (24*time.Hour))
 	if -time.Until(l.purged) > (24 * time.Hour) {
 		gConf.purgeLock.Lock()
 		hasLocked := true
