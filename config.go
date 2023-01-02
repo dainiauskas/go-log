@@ -95,3 +95,8 @@ func (conf *config) setFilenamePrefix(filenamePrefix, symlinkPrefix string) {
 func SetMaxDays(days int) {
 	gConf.maxdays = days
 }
+
+// GetMaxDays - change maxdays parameter
+func GetMaxDays() int {
+	return gConf.maxdays
+}
