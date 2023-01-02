@@ -298,6 +298,7 @@ func (l *logger) log(t time.Time, data []byte) {
 				return nil
 			}
 
+			fmt.Println(-time.Until(info.ModTime()) > (time.Hour * 24 * time.Duration(gConf.maxdays)))
 			if -time.Until(info.ModTime()) > (time.Hour * 24 * time.Duration(gConf.maxdays)) {
 				e = os.Remove(path)
 				if e != nil {
