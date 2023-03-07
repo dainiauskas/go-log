@@ -329,10 +329,7 @@ func (l *logger) log(t time.Time, data []byte) {
 	if err != nil {
 		l.errlog(t, nil, err)
 	}
-	err = os.Symlink(path.Base(filename), gFullSymlinks[l.level])
-	if err != nil {
-		l.errlog(t, nil, err)
-	}
+	_ = os.Symlink(path.Base(filename), gFullSymlinks[l.level])
 
 	n, _ := l.file.Write(data)
 	l.size += int64(n)
