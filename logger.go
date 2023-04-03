@@ -354,7 +354,7 @@ func (l *logger) errlog(t time.Time, originLog []byte, err error) {
 		}
 	}
 
-	gBufPool.putBuffer(buf)
+	gBufPool.returnBuffer(buf)
 }
 
 // init is called after all the variable declarations in the package have evaluated their initializers,
@@ -442,7 +442,7 @@ func log(logLevel int, format string, args []interface{}) {
 		fmt.Print(string(output))
 	}
 
-	gBufPool.putBuffer(buf)
+	gBufPool.returnBuffer(buf)
 }
 
 var gProgname = path.Base(os.Args[0])

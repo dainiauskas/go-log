@@ -67,7 +67,7 @@ func (bp *bufferPool) getBuffer() *buffer {
 }
 
 // putBuffer returns a buffer to the free list.
-func (bp *bufferPool) putBuffer(b *buffer) {
+func (bp *bufferPool) returnBuffer(b *buffer) {
 	bp.lock.Lock()
 	if bp.freeBufNum < 1000 {
 		b.next = bp.freeList
