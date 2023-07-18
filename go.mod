@@ -1,3 +1,3 @@
-module github.com/ButentaLT/pkg-log
+module github.com/dainiauskas/go-log
 
 go 1.17
