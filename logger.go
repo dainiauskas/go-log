@@ -23,6 +23,7 @@ Basic example:
 package log
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -448,6 +449,56 @@ func genLogPrefix(buf *buffer, logLevel, skip int, t time.Time) {
 	}
 
 	buf.WriteString("] ")
+}
+
+// writeStructured serializes a metadata payload to compact JSON and writes it
+// as a single log entry at the requested level. It is a convenience wrapper
+// for callers that already assemble structured metadata.
+func writeStructured(level int, payload map[string]interface{}) {
+	if payload == nil {
+		payload = map[string]interface{}{}
+	}
+
+	b, err := json.Marshal(payload)
+	var s string
+	if err != nil {
+		// Fall back to a sensible representation when marshaling fails.
+		s = fmt.Sprintf("%v", payload)
+	} else {
+		s = string(b)
+	}
+
+	// Use the existing log facades to preserve level behavior and flags.
+	switch level {
+	case logLevelTrace:
+		Trace("%s", s)
+	case logLevelInfo:
+		Info("%s", s)
+	case logLevelWarn:
+		Warn("%s", s)
+	case logLevelError:
+		Error("%s", s)
+	case logLevelPanic:
+		Panic("%s", s)
+	case logLevelAbort:
+		Abort("%s", s)
+	case logLevelQuery:
+		Query("%s", s)
+	case logLevelDebug:
+		Debug("%s", s)
+	default:
+		Info("%s", s)
+	}
+}
+
+// ErrorStructured logs a structured payload at error level.
+func ErrorStructured(payload map[string]interface{}) {
+	writeStructured(logLevelError, payload)
+}
+
+// InfoStructured logs a structured payload at info level.
+func InfoStructured(payload map[string]interface{}) {
+	writeStructured(logLevelInfo, payload)
 }
 
 func log(logLevel int, format string, args []interface{}) {
