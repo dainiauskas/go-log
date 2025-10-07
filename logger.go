@@ -224,7 +224,10 @@ func Debug(format string, args ...interface{}) {
 type Logger struct{}
 
 func (l Logger) Println(v ...interface{}) {
-	Trace("", v...)
+	// Print the provided values as a single string. Use Trace-level logging to
+	// remain consistent with the original intent, but provide a format so the
+	// values are not dropped when format is empty.
+	Trace("%s", fmt.Sprint(v...))
 }
 
 func (l Logger) Printf(format string, v ...interface{}) {
@@ -236,25 +239,33 @@ type Gorm struct{}
 
 // Print function used in Gorm to output
 func (l Gorm) Print(args ...interface{}) {
-	var messages []interface{}
+	// Be defensive: gorm may call Print with different argument shapes. Guard
+	// against panics from indexing into args when it's shorter than expected.
+	if len(args) == 0 {
+		return
+	}
 
+	var messages []interface{}
 	switch args[0] {
 	case "sql":
-		messages = []interface{}{
-			args[3],
-			args[4],
-			args[2],
-			args[5],
+		// expected shape: ["sql", formattedQuery, duration, queryString, args, rows]
+		if len(args) >= 6 {
+			messages = []interface{}{
+				args[3],
+				args[4],
+				args[2],
+				args[5],
+			}
+			Query("Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages...)
 		}
-
-		Query("Query=[%v], Values=%v Duration=[%v], Rows=[%v]", messages...)
 	case "log":
-		messages = []interface{}{
-			args[1],
-			args[2],
+		if len(args) >= 3 {
+			messages = []interface{}{
+				args[1],
+				args[2],
+			}
+			Query("Source=[%v], Error=%v", messages...)
 		}
-
-		Query("Source=[%v], Error=%v", messages...)
 	}
 }
 
@@ -320,7 +331,9 @@ func (l *logger) log(t time.Time, data []byte) {
 		return
 	}
 
-	l.file.Close()
+	if l.file != nil {
+		_ = l.file.Close()
+	}
 	l.file = newfile
 	l.day = d
 	l.size = 0
