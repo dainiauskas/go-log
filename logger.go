@@ -24,6 +24,7 @@ package log
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -62,6 +63,11 @@ const (
 var (
 	infoUserName string
 	infoHostName string
+	// gMaxFileSizeBytes controls the maximum logfile size in bytes before
+	// rotation. Tests may override this by providing a test-only helper, but
+	// provide a sensible zero-value default here so normal builds compile and
+	// use day-based rotation only when not configured in tests.
+	gMaxFileSizeBytes int64
 )
 
 // const strings
@@ -324,7 +330,23 @@ func (l *logger) log(t time.Time, data []byte) {
 		hasLocked = false
 	}
 
-	filename := fmt.Sprintf("%s%s_%d%02d%02d.log", gConf.pathPrefix, gLogLevelNames[l.level], y, m, d)
+	// Decide whether we can reuse current file: same day and within size limit.
+	canReuse := false
+	if l.file != nil && l.day == d {
+		if gMaxFileSizeBytes <= 0 || (l.size+int64(len(data)) < gMaxFileSizeBytes) {
+			canReuse = true
+		}
+	}
+
+	if canReuse {
+		n, _ := l.file.Write(data)
+		l.size += int64(n)
+		return
+	}
+
+	// Need to open a new file (new day, first open, or size exceeded).
+	// Use a nano timestamp suffix to generate unique filenames on rotation.
+	filename := fmt.Sprintf("%s%s_%d%02d%02d.%d.log", gConf.pathPrefix, gLogLevelNames[l.level], y, m, d, time.Now().UnixNano())
 	newfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		l.errlog(t, data, err)
@@ -469,3 +491,92 @@ var isSymlink map[string]bool
 var gFullSymlinks [logLevelMax]string
 var gBufPool bufferPool
 var gLoggers [logLevelMax]logger
+
+// gMaxFileSizeBytes controls rotation by size when > 0. Default 0 (disabled).
+
+// EnrichHTTPMeta populates and returns a metadata map with useful diagnostic
+// information for HTTP error logging. It mirrors the enrichment previously
+// performed in controller.jsonErrorResponseWithMeta so callers can reuse the
+// same behavior from the central logger package.
+//
+// Provided fields:
+//   - origin, originFile, originLine (caller info)
+//   - method, path, query (from *http.Request)
+//   - selected headers: X-Request-Id, UserName, Application-Version, User-Agent
+//   - timestamp (human-readable), hostname
+//   - stack (short stack trace) when status >= 500
+func EnrichHTTPMeta(status int, req *http.Request, meta map[string]interface{}, callerSkip int) map[string]interface{} {
+	if meta == nil {
+		meta = map[string]interface{}{}
+	}
+
+	// origin information. callerSkip allows the caller to control how many
+	// stack frames to skip so origin points to the real caller (for example,
+	// when called from a wrapper in another package).
+	if _, ok := meta["origin"]; !ok {
+		if pc, file, line, okc := runtime.Caller(callerSkip); okc {
+			if fn := runtime.FuncForPC(pc); fn != nil {
+				meta["origin"] = path.Base(fn.Name())
+			}
+			if _, okf := meta["originFile"]; !okf {
+				meta["originFile"] = file
+			}
+			if _, okl := meta["originLine"]; !okl {
+				meta["originLine"] = line
+			}
+		}
+	}
+
+	// request information
+	if req != nil {
+		if _, ok := meta["method"]; !ok {
+			meta["method"] = req.Method
+		}
+		if _, ok := meta["path"]; !ok {
+			meta["path"] = req.URL.Path
+		}
+		if _, ok := meta["query"]; !ok {
+			meta["query"] = req.URL.RawQuery
+		}
+		headersToCopy := []string{"X-Request-Id", "UserName", "Application-Version", "User-Agent"}
+		for _, h := range headersToCopy {
+			if _, ok := meta[h]; !ok {
+				if v := req.Header.Get(h); v != "" {
+					meta[h] = v
+				}
+			}
+		}
+	}
+
+	// timestamp and hostname
+	if _, ok := meta["timestamp"]; !ok {
+		meta["timestamp"] = time.Now().Format("2006-01-02 15:04:05 MST")
+	}
+	if _, ok := meta["hostname"]; !ok {
+		if h, err := os.Hostname(); err == nil {
+			meta["hostname"] = h
+		}
+	}
+
+	// stack for server errors
+	if status >= http.StatusInternalServerError {
+		if _, ok := meta["stack"]; !ok {
+			pcs := make([]uintptr, 10)
+			n := runtime.Callers(2, pcs)
+			frames := runtime.CallersFrames(pcs[:n])
+			var b strings.Builder
+			for i := 0; i < 6; i++ {
+				f, more := frames.Next()
+				fmt.Fprintf(&b, "%s:%d %s\n", f.File, f.Line, path.Base(f.Function))
+				if !more {
+					break
+				}
+			}
+			meta["stack"] = b.String()
+		}
+	}
+
+	return meta
+}
+
+// (test helpers moved to test_helpers_test.go)
